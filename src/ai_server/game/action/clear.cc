@@ -4,9 +4,11 @@
 #include "ai_server/util/math/to_vector.h"
 #include "ai_server/util/math/distance.h"
 #include "ai_server/util/math/geometry.h"
+#include "ai_server/model/motion/stop.h"
 #include "ai_server/model/motion/walk_forward.h"
 #include "ai_server/model/motion/turn_left.h"
 #include "ai_server/model/motion/turn_right.h"
+#include "ai_server/game/detail/mcts.h"
 
 #include <iostream>
 using namespace std;
@@ -31,6 +33,7 @@ model::command clear::execute() {
 
     const auto robot_pos = util::math::position(robot);
     const auto ball_pos = util::math::position(world().ball());
+    //const Eigen::Vector2d ene_goal_pos(world(), field(), x_min(), 0.0);
 
     const double kyori = util::math::distance(ball_pos, robot_pos);
     const double kakudo = util::math::direction(ball_pos, robot_pos);
@@ -45,15 +48,15 @@ model::command clear::execute() {
 
     Eigen::Vector2d p1, p2, leftP, rightP;
     std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, kyori);
-    std::tie(leftP, rightP) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, kyori);
+    std::tie(leftP, rightP) = util::math::contact_points(robot_pos, ball_pos, kyori);
 
-    std::cout << "ベクトル左" << p1 << "\n";
-    std::cout << "ベクトル右" << p2 << "\n";
+    std::cout << "Lball:" << p1 << "\n";
+    std::cout << "Rball:" << p2 << "\n";
 
     
     command.set_motion(std::make_shared<model::motion::walk_forward>());
     
-    constexpr double rot_th = 0.1;
+    constexpr double rot_th = 1;
     const double pai = 3.14;
 
     if (rot_th < omega) {
