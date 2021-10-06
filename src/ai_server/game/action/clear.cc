@@ -1,3 +1,4 @@
+
 #include <cmath>
 #include "clear.h"
 #include "ai_server/util/math/angle.h"
@@ -9,6 +10,7 @@
 #include "ai_server/model/motion/turn_left.h"
 #include "ai_server/model/motion/turn_right.h"
 #include "ai_server/game/detail/mcts.h"
+#include "ai_server/model/field.h"
 
 #include <iostream>
 using namespace std;
@@ -31,32 +33,49 @@ model::command clear::execute() {
 
     const auto robot = our_robots.at(id_);
 
+    //自分とボールとゴールの位置を取得
     const auto robot_pos = util::math::position(robot);
     const auto ball_pos = util::math::position(world().ball());
-    //const Eigen::Vector2d ene_goal_pos(world(), field(), x_min(), 0.0);
+    const Eigen::Vector2d ene_goal_pos(world(). field(). x_min(), 0.0);
 
+    
+    //２点の距離・角度、２つのベクトルの角度について
     const double kyori = util::math::distance(ball_pos, robot_pos);
     const double kakudo = util::math::direction(ball_pos, robot_pos);
     const double omega = util::math::direction_from(std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x()), robot.theta());
     
+    
+    Eigen::Vector2d target0_pos = ball_pos + util::math::direction(ball_pos, ene_goal_pos) * (ball_pos - ene_goal_pos).normalized();
+    constexpr double a = 200;
+
+    //p1,p2　leftP,rightP=
+    Eigen::Vector2d p1, p2, leftP, rightP;
+    std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, a);
+    std::tie(leftP, rightP) = util::math::contact_points(ball_pos, robot_pos, a);
+
+
+    std::cout << "MYロボット" << robot_pos << "\n";
+    std::cout << "ボール" << ball_pos << "\n";
+    std::cout << "相手ゴール" << ene_goal_pos << "\n";
     std::cout << "距離:" << kyori << "\n";
     std::cout << "角度:" << kakudo << "\n";
     std::cout << "角度差:" << omega << "\n";
-
-    command.set_position(ball_pos, util::math::direction(ball_pos, robot_pos));
-
-
-    Eigen::Vector2d p1, p2, leftP, rightP;
-    std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, kyori);
-    std::tie(leftP, rightP) = util::math::contact_points(robot_pos, ball_pos, kyori);
-
     std::cout << "Lball:" << p1 << "\n";
     std::cout << "Rball:" << p2 << "\n";
+    std::cout << "ラスト点" << target0_pos << "\n";
 
     
+//-----------------------------------動作-----------------------------------------------------
+
+
+    /*ボールの方向を向きつつボールの位置に移動
+   command.set_position(ball_pos, util::math::direction(ball_pos, robot_pos));*/
+
+    
+    /*前進
     command.set_motion(std::make_shared<model::motion::walk_forward>());
     
-    constexpr double rot_th = 1;
+    constexpr double rot_th = 0.5;
     const double pai = 3.14;
 
     if (rot_th < omega) {
@@ -68,7 +87,7 @@ model::command clear::execute() {
 
     } else if (omega < -rot_th) {
         command.set_motion(std::make_shared<model::motion::turn_right>());
-    }
+    }*/
     return command;
 }
 
