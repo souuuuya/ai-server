@@ -44,15 +44,21 @@ model::command clear::execute() {
     const double kakudo = util::math::direction(ball_pos, robot_pos);
     const double omega = util::math::direction_from(std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x()), robot.theta());
     
-    
-    Eigen::Vector2d target0_pos = ball_pos + util::math::direction(ball_pos, ene_goal_pos) * (ball_pos - ene_goal_pos).normalized();
-    constexpr double a = 200;
+    //距離の変数
+    constexpr double a = 350;
+    //ラストポント（ボールの裏）
+    //Eigen::Vector2d target0_pos = ball_pos + util::math::direction(ball_pos, ene_goal_pos) * (ball_pos - ene_goal_pos).normalized();
+     Eigen::Vector2d target0_pos = ball_pos + a * (ball_pos - ene_goal_pos).normalized();
+
 
     //p1,p2　leftP,rightP=
     Eigen::Vector2d p1, p2, leftP, rightP;
-    std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, a);
+    std::tie(p1, p2) = util::math::calc_isosceles_vertexes(ene_goal_pos, ball_pos, a);
     std::tie(leftP, rightP) = util::math::contact_points(ball_pos, robot_pos, a);
 
+    //p1・p2からロボットまでの距離
+    const double P1_kyori = util::math::distance(p1, robot_pos);
+    const double P2_kyori = util::math::distance(p2, robot_pos);
 
     std::cout << "MYロボット" << robot_pos << "\n";
     std::cout << "ボール" << ball_pos << "\n";
@@ -65,16 +71,29 @@ model::command clear::execute() {
     std::cout << "ラスト点" << target0_pos << "\n";
 
     
-//-----------------------------------動作-----------------------------------------------------
+/*-----------------------------------動作-----------------------------------------------------*/
 
-
-    /*ボールの方向を向きつつボールの位置に移動
-   command.set_position(ball_pos, util::math::direction(ball_pos, robot_pos));*/
 
     
-    /*前進
-    command.set_motion(std::make_shared<model::motion::walk_forward>());
+   //ボールの方向を向きつつボールの位置に移動
+    command.set_position(ball_pos, util::math::direction(ball_pos, robot_pos));
+
+
+    //p1,p2に進む
+    if (P1_kyori < P2_kyori){
+        command.set_position(p1, util::math::direction(ball_pos, p1));
+    } else if (P1_kyori > P2_kyori){
+        command.set_position(p2, util::math::direction(ball_pos, p2));
+    }
     
+        //ラストポントに移動    
+        command.set_position(target0_pos, util::math::direction(ball_pos, target0_pos));
+    
+
+    //前進
+    //command.set_motion(std::make_shared<model::motion::walk_forward>());
+    
+
     constexpr double rot_th = 0.5;
     const double pai = 3.14;
 
@@ -87,7 +106,7 @@ model::command clear::execute() {
 
     } else if (omega < -rot_th) {
         command.set_motion(std::make_shared<model::motion::turn_right>());
-    }*/
+    }
     return command;
 }
 
