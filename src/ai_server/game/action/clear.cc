@@ -15,6 +15,7 @@
 #include <iostream>
 using namespace std;
 
+
 namespace ai_server::game::action {
 
 clear::clear(context& ctx, unsigned int id) : base(ctx, id) {}
@@ -37,16 +38,18 @@ model::command clear::execute() {
     const auto robot_pos = util::math::position(robot);
     const auto ball_pos = util::math::position(world().ball());
     const Eigen::Vector2d ene_goal_pos(world(). field(). x_min(), 0.0);
+    const Eigen::Vector2d our_goal_pos(world(). field(). x_min(), 0.0);
 
-    //座標
+    //ロボットの座標
     const auto rob_x = robot_pos.x();
     const auto rob_y = robot_pos.y();
     
     //２点の距離・角度、２つのベクトルの角度について
     const double kyori = util::math::distance(ball_pos, robot_pos);
     const double kakudo = util::math::direction(ball_pos, robot_pos);
-    const double omega = util::math::direction_from(std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x()), robot.theta());
+    const double omega = util::math::direction_from(std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x()), robot.theta());    
     const double Gkakudo = util::math::direction(ene_goal_pos, robot_pos);
+    //const double kakudo_RG = util::math::direction(our_goal_pos, robot_pos);
     
     //距離の変数
     constexpr double a = 350;
@@ -66,51 +69,94 @@ model::command clear::execute() {
     const double P1_kyori = util::math::distance(p1, robot_pos);
     const double P2_kyori = util::math::distance(p2, robot_pos);
 
-    std::cout << "1. MYロボット" << robot_pos << "\n";
-    std::cout << "2. ボール" << ball_pos << "\n";
-    std::cout << "3. 相手ゴール" << ene_goal_pos << "\n";
-    std::cout << "4. RB距離:" << kyori << "\n";
-    std::cout << "5. RB角度:" << kakudo << "\n";
-    std::cout << "6. RB角度差:" << omega << "\n";
-    std::cout << "7. RGe角度" << Gkakudo << "\n";
-    std::cout << "8. Lball:" << p1 << "\n";
-    std::cout << "9. Rball:" << p2 << "\n";
-    std::cout << "10.ラスト点" << target0_pos << "\n";
-    std::cout << "11.p1距離" << P1_kyori << "\n";
-    std::cout << "12.p2距離" << P2_kyori << "\n";
+    //p1・p2の角度差
+    const double omega_p1 = util::math::direction_from(std::atan2(p1.y() - robot_pos.y(), p1.x() - robot_pos.x()), robot.theta());    
+    const double omega_p2 = util::math::direction_from(std::atan2(p2.y() - robot_pos.y(), p2.x() - robot_pos.x()), robot.theta());    
+
+    std::cout << "------------------------" << "\n";
+
+    std::cout << "MYロボットX" << rob_x << "\n";
+    std::cout << "MYロボットy" << rob_y << "\n";
+    std::cout << "ボールX" << ball_pos.x() << "\n";
+    std::cout << "ボールY" << ball_pos.y() << "\n";
+    //std::cout << "相手ゴール" << ene_goal_pos << "\n";
+    std::cout << "RB距離:" << kyori << "\n";
+    //std::cout << "RB角度:" << kakudo << "\n";
+    //std::cout << "RB角度差:" << omega << "\n";
+    //std::cout << "RGe角度" << Gkakudo << "\n";
+    std::cout << "p2角度差:" << omega_p2 << "\n";
+    std::cout << "Lball:" << p1 << "\n";
+    std::cout << "Rball:" << p2 << "\n";
+    std::cout << "ラスト点X" << target0_pos.x() << "\n";
+    std::cout << "ラスト点Y" << target0_pos.y() << "\n";
+    //std::cout << "p1距離" << P1_kyori << "\n";
+    //std::cout << "p2距離" << P2_kyori << "\n";
+
+    std::cout << "------------------------" << "\n";
 
 /*-----------------------------------動作-----------------------------------------------------*/
 
-
+    constexpr double rot_th = 0.5;
+    constexpr double rot_th_p = 0.5;
+    const double pai = 3.14;
     
    //ボールの方向を向きつつボールの位置に移動
-    command.set_position(ball_pos, util::math::direction(ball_pos, robot_pos));
+    //command.set_position(ball_pos, util::math::direction(ball_pos, robot_pos));
 
     //前進
-    //command.set_motion(std::make_shared<model::motion::walk_forward>());
+    command.set_motion(std::make_shared<model::motion::walk_forward>());
 
-    //距離が500以下と自分がゴール側にいるとき
-    if(kyori <= 600 ){
+    //自分が自分ゴール側に向いている時と自分が相手ゴール側にいるとき
+    if (kyori <= 500){
 
-        //p1,p2に進む
-        if (P1_kyori < P2_kyori){
-            command.set_position(p1, util::math::direction(robot_pos, p1));
-        } else if (P1_kyori > P2_kyori){
-            command.set_position(p2, util::math::direction(robot_pos, p2));
-        }
-    
-            //ラストポントに移動    
-            command.set_position(target0_pos, util::math::direction(ball_pos, target0_pos));
-    
-            if(robot_pos == target0_pos+target_hani || robot_pos == target0_pos-target_hani){
+        std::cout << "条件その１入" << "\n";
 
+        //Ｐ１（Ｐ２）の方向に向きながら前進
+        
+        if(P1_kyori < P2_kyori){
+
+            std::cout << "p1に移動" << "\n";
+            command.set_position(p1, util::math::direction(p1, robot_pos));
+
+            //ｐ１の角度調整
+            if (rot_th_p < omega_p1) {
+                if(omega_p1 <= 2*pai && omega_p1 >= pai){    
+                    command.set_motion(std::make_shared<model::motion::turn_right>());
+                }else{
+                    command.set_motion(std::make_shared<model::motion::turn_left>());
+                }
+
+            } else if (omega_p1 < -rot_th_p) {
+                command.set_motion(std::make_shared<model::motion::turn_left>());
+            }
+
+
+        } else if(P1_kyori > P2_kyori){
+
+            std::cout << "p２に移動" << "\n";
+            command.set_position(p2, util::math::direction(p2, robot_pos));
+
+            
+            //ｐ２の角度調整
+            if (rot_th_p < omega_p2) {
+                if(omega_p2 <= 2*pai && omega_p2 >= pai){    
+                    command.set_motion(std::make_shared<model::motion::turn_right>());
+                }else{
+                    command.set_motion(std::make_shared<model::motion::turn_left>());
+                }
+
+            } else if (omega_p2 < -rot_th_p) {
+                command.set_motion(std::make_shared<model::motion::turn_left>());
+            }
 
             }
 
+
+        
+
     }
 
-    constexpr double rot_th = 0.6;
-    const double pai = 3.14;
+    
 
     if (rot_th < omega) {
         if(omega <= 2*pai && omega >= pai){    
@@ -120,7 +166,8 @@ model::command clear::execute() {
         }
 
     } else if (omega < -rot_th) {
-        command.set_motion(std::make_shared<model::motion::turn_right>());
+        command.set_motion(std::make_shared<model::motion::turn_left>());
+      
     }
     return command;
 }
