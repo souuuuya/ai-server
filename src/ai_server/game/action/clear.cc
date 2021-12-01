@@ -72,6 +72,7 @@ model::command clear::execute() {
     //p1・p2の角度差
     const double omega_p1 = util::math::direction_from(std::atan2(p1.y() - robot_pos.y(), p1.x() - robot_pos.x()), robot.theta());    
     const double omega_p2 = util::math::direction_from(std::atan2(p2.y() - robot_pos.y(), p2.x() - robot_pos.x()), robot.theta());    
+    const auto   omega_target0 = util::math::direction_from(std::atan2(target0_pos.y() - robot_pos.y(), target0_pos.x() - robot_pos.x()), robot.theta());
 
     std::cout << "------------------------" << "\n";
 
@@ -85,19 +86,19 @@ model::command clear::execute() {
     //std::cout << "RB角度差:" << omega << "\n";
     //std::cout << "RGe角度" << Gkakudo << "\n";
     std::cout << "p2角度差:" << omega_p2 << "\n";
-    std::cout << "Lball:" << p1 << "\n";
-    std::cout << "Rball:" << p2 << "\n";
-    std::cout << "ラスト点X" << target0_pos.x() << "\n";
-    std::cout << "ラスト点Y" << target0_pos.y() << "\n";
-    //std::cout << "p1距離" << P1_kyori << "\n";
-    //std::cout << "p2距離" << P2_kyori << "\n";
+    std::cout << "ｐ１" << p1 << "\n";
+    std::cout << "ｐ２" << p2 << "\n";
+    //std::cout << "ラスト点X" << target0_pos.x() << "\n";
+    //std::cout << "ラスト点Y" << target0_pos.y() << "\n";
+    std::cout << "p1距離" << P1_kyori << "\n";
+    std::cout << "p2距離" << P2_kyori << "\n";
 
     std::cout << "------------------------" << "\n";
 
 /*-----------------------------------動作-----------------------------------------------------*/
 
     constexpr double rot_th = 0.5;
-    constexpr double rot_th_p = 0.5;
+    constexpr double rot_th_p = 0.15;
     const double pai = 3.14;
     
    //ボールの方向を向きつつボールの位置に移動
@@ -107,15 +108,15 @@ model::command clear::execute() {
     command.set_motion(std::make_shared<model::motion::walk_forward>());
 
     //自分が自分ゴール側に向いている時と自分が相手ゴール側にいるとき
-    if (kyori <= 500){
+    if (kyori <= 650){
 
         std::cout << "条件その１入" << "\n";
 
         //Ｐ１（Ｐ２）の方向に向きながら前進
-        
         if(P1_kyori < P2_kyori){
 
             std::cout << "p1に移動" << "\n";
+           
             command.set_position(p1, util::math::direction(p1, robot_pos));
 
             //ｐ１の角度調整
@@ -131,28 +132,48 @@ model::command clear::execute() {
             }
 
 
-        } else if(P1_kyori > P2_kyori){
+        } else if(P1_kyori >= P2_kyori){
 
             std::cout << "p２に移動" << "\n";
+           
             command.set_position(p2, util::math::direction(p2, robot_pos));
 
             
             //ｐ２の角度調整
-            if (rot_th_p < omega_p2) {
+            if (rot_th_p <= omega_p2) {
                 if(omega_p2 <= 2*pai && omega_p2 >= pai){    
                     command.set_motion(std::make_shared<model::motion::turn_right>());
                 }else{
                     command.set_motion(std::make_shared<model::motion::turn_left>());
                 }
 
-            } else if (omega_p2 < -rot_th_p) {
+            } else if (omega_p2 <= -rot_th_p) {
                 command.set_motion(std::make_shared<model::motion::turn_left>());
             }
 
-            }
 
+                
+                
+        }
 
-        
+        //ラストポントへ移動
+        if((p1.y() < rob_y+30 && p1.y() > rob_y-30) || (p2.y() < rob_y+30 && p2.y() > rob_y-30)){
+
+            std::cout << "p１かp２に移動完了" << "\n";
+            command.set_position(target0_pos, util::math::direction(target0_pos, robot_pos));
+                    
+             //ラストポントの角度調整
+            /*if (rot_th_p < omega_target0) {
+                if(omega_target0 <= 2*pai && omega_target0 >= pai){    
+                    command.set_motion(std::make_shared<model::motion::turn_right>());
+                }else{
+                    command.set_motion(std::make_shared<model::motion::turn_left>());
+                }
+
+            } else if (omega_target0 < -rot_th_p) {
+                command.set_motion(std::make_shared<model::motion::turn_left>());
+            }*/
+        }    
 
     }
 
@@ -167,7 +188,7 @@ model::command clear::execute() {
 
     } else if (omega < -rot_th) {
         command.set_motion(std::make_shared<model::motion::turn_left>());
-      
+
     }
     return command;
 }
