@@ -16,11 +16,11 @@ kick::kick(context& ctx, unsigned int id)
       finishflag_(false),
       stop_ball_flag_(false) {}
 
-void kick::kick_to(double x, double y) {
+void kick::kick_to(double x, double y) {          //目標地点
   target_ = Eigen::Vector2d{x, y};
 }
 
-void kick::set_kick_type(const model::command::kick_flag_t& kick_type) {
+void kick::set_kick_type(const model::command::kick_flag_t& kick_type) {          //キックの種類
   kick_type_ = kick_type;
 }
 
@@ -29,15 +29,15 @@ void kick::set_mode(mode mod) {
   mode_ = mod;
 }
 
-void kick::set_dribble(int dribble) {
+void kick::set_dribble(int dribble) {         //ドリブル
   dribble_ = dribble;
 }
 
-void kick::set_angle_margin(double margin) {
+void kick::set_angle_margin(double margin) {          //の間、差
   margin_ = margin;
 }
 
-kick::running_state kick::state() const {
+kick::running_state kick::state() const {         
   return state_;
 }
 
