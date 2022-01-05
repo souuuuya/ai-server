@@ -16,9 +16,10 @@ namespace model {
 
 class command {
 public:
-  enum class kick_type_t { none, line, chip, backspin };
+  //キックの種類
+  enum class kick_type_t { none, line, chip, backspin };　  //{ 0, 1, 2, 3}
 
-  using kick_flag_t = std::tuple<kick_type_t, double>;
+  using kick_flag_t = std::tuple<kick_type_t, double>;　　　//「kick_type_t」要素の固定
 
   command();
 

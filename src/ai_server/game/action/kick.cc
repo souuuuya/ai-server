@@ -20,7 +20,7 @@ void kick::kick_to(double x, double y) {          //目標地点
   target_ = Eigen::Vector2d{x, y};
 }
 
-void kick::set_kick_type(const model::command::kick_flag_t& kick_type) {          //キックの種類
+void kick::set_kick_type(const model::command::kick_flag_t& kick_type) {          //キックの種類を決める(キックの種類はcommand.h の20行~22行)
   kick_type_ = kick_type;
 }
 
@@ -41,26 +41,26 @@ kick::running_state kick::state() const {
   return state_;
 }
 
-void kick::set_stop_ball(bool stop_ball_flag) {
+void kick::set_stop_ball(bool stop_ball_flag) {         //ボールが止まるフラグ
   stop_ball_flag_ = stop_ball_flag;
 }
 
 model::command kick::execute() {
-  using boost::math::constants::pi;
-  using boost::math::constants::two_pi;
+  using boost::math::constants::pi;         // ==180°
+  using boost::math::constants::two_pi;     // ==360°
 
   const auto our_robots           = model::our_robots(world(), team_color());
   const auto& robot_me            = our_robots.at(id_);
   const Eigen::Vector2d robot_pos = util::math::position(robot_me);
   const Eigen::Vector2d ball_pos  = util::math::position(world().ball());
   const Eigen::Vector2d ball_vel  = util::math::velocity(world().ball());
-  //ボールから目標
+  //ボールから目標の角度
   const double ball_target = std::atan2(target_.y() - ball_pos.y(), target_.x() - ball_pos.x());
-  //ボールからロボット
+  //ボールからロボットの角度
   const double ball_robot =
       std::atan2(robot_pos.y() - ball_pos.y(), robot_pos.x() - ball_pos.x());
-  //ロボットからボール
-  const double robot_ball = ball_robot + pi<double>();
+  //ロボットからボールの角度
+  const double robot_ball = ball_robot + pi<double>();　　//pi<double> == 180°
   //ボールとロボットの間の距離
   const double dist = 350;
   //送りたいロボットを指定
@@ -78,12 +78,12 @@ model::command kick::execute() {
   }
 
   switch (state_) {
-    case running_state::move: { //ボールの近くまで寄る
+    case running_state::move: { //ボールの近くまで寄る とき...
 
-      if ((ball_pos - robot_pos).norm() < dist) {
+      if ((ball_pos - robot_pos).norm() < dist) {           //ロボットからボールまでの距離が dist より小さい時...
         state_ = running_state::round;
-      }
-      if (std::abs(util::math::wrap_to_pi(ball_target - robot_ball)) < margin_) {
+      }                                                                             //wrap_to_pi( 角度 − 基準の角度 )
+      if (std::abs(util::math::wrap_to_pi(ball_target - robot_ball)) < margin_) {       //もし、{（ボールから目標の角度）-（ボールからロボットの角度）}　＜　0.05(2.86°)
         state_ = running_state::kick;
       }
       //ボールのそばによる処理
@@ -92,9 +92,9 @@ model::command kick::execute() {
                             ball_target});
     } break;
 
-    case running_state::round: { //回り込
+    case running_state::round: { //回り込 のとき...
 
-      if ((ball_pos - robot_pos).norm() > 1.5 * dist) {
+      if ((ball_pos - robot_pos).norm() > 1.5 * dist) {         //ロボットからボールまでの距離が dist*1.5 より大きい時...
         state_ = running_state::move;
       }
       if (std::abs(util::math::wrap_to_pi(ball_target - robot_ball)) < margin_) {
@@ -126,13 +126,15 @@ model::command kick::execute() {
       const double si = -std::sin(ball_robot) * velo;
       const double co = std::cos(ball_robot) * velo;
       const double move_vel =
-          !kick_flag_tf ? 0 : 3.0 * ((robot_pos - ball_pos).norm() - 75.0); // 90はドリブラー分
+          !kick_flag_tf ? 0 : 3.0 * ((robot_pos - ball_pos).norm() - 75.0); // 90はドリブラー分               意味：○ =！「kick_flag_tf」が ture なら0、 false ならロボットからボールまでの距離 − 75
       const Eigen::Vector2d vel = move_vel * (ball_pos - robot_pos).normalized();
       command.set_velocity({vel.x() + si, vel.y() + co,
                             4.0 * util::math::wrap_to_pi(ball_target - robot_me.theta())});
     } break;
   }
+
   return command;
+
 }
 bool kick::finished() const {
   return finishflag_;
