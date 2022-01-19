@@ -2,10 +2,14 @@
 #include <cmath>
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
+
 #include "ai_server/model/motion/right_kick.h"
+#include "ai_server/model/motion/right_outside_kick.h"
 #include "ai_server/model/motion/left_kick.h"
+#include "ai_server/model/motion/left_outside_kick.h"
 #include "ai_server/model/motion/turn_left.h"
 #include "ai_server/model/motion/turn_right.h"
+
 #include "kick.h"
 
 namespace ai_server {
@@ -68,8 +72,10 @@ model::command kick::execute() {
       std::atan2(robot_pos.y() - ball_pos.y(), robot_pos.x() - ball_pos.x());
   //ロボットからボールの角度
   const double robot_ball = ball_robot + pi<double>();　　//pi<double> == 180°
-  //ロボットから敵ロボットの角度
+  //ロボットからキーパーロボットの角度
   const double robot_erobot = std::atan2(robot_pos.y() - robot_ene.y(), robot_pos.x() - robot_ene.x());
+  /*
+  const auto keeper_theta = robot_ene->second.theta();*/
   //ボールとロボットの間の距離
   const double dist = 350;
   //送りたいロボットを指定
@@ -133,10 +139,17 @@ model::command kick::execute() {
           (util::math::wrap_to_pi(ball_target + pi<double>() - ball_robot) / pi<double>()) *
           1500;
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
       //キーパーが右                                                                                  //ロボットとボールの位置を見ているので、相手のきーぱーの位置を取得、それとぼーるの角度を確認してif（switch）で制御
       if(robot_ene.y() <= 0){                                                                      //参考：キーパーロボットの開脚で守れる範囲は、ロボットを中心に30cm、シュートの入る角度（rad）は左右に0.3ずつ
         //左キック
         command.set_motion(std::make_shared<model::motion::left_kick>());
+
+        //キーパーが極端に右
+        if(std::abs(std::atan2(robot_pos.y() - robot_ene.y(), robot_pos.x() - robot_ene.x())/* - keepaer_theta*/) < pi<double>() / 4.0){
+          command.set_motion(std::make_shared<model::motion::left_kick>());
+        }
 
 
       //キーパーが左
@@ -145,6 +158,8 @@ model::command kick::execute() {
         command.set_motion(std::make_shared<model::motion::right_kick>());
 
       }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
       const double si = -std::sin(ball_robot) * velo;
       const double co = std::cos(ball_robot) * velo;

@@ -67,7 +67,7 @@ model::command goal_keep::execute() {
       return (ball_vel.y() / ball_vel.x()) * (x - ball_pos.x()) + ball_pos.y();
 
     // 敵が蹴りそうなら敵の向き
-    const auto kicker_itr = std::min_element(
+    const auto kicker_itr = std::min_element(     //距離が最小 == min_element
         enemy_robots.cbegin(), enemy_robots.cend(), [&ball_pos](auto& a, auto& b) {
           return (util::math::position(a.second) - ball_pos).norm() <
                  (util::math::position(b.second) - ball_pos).norm();
