@@ -74,8 +74,8 @@ model::command kick::execute() {
   const double robot_ball = ball_robot + pi<double>();　　//pi<double> == 180°
   //ロボットからキーパーロボットの角度
   const double robot_erobot = std::atan2(robot_pos.y() - robot_ene.y(), robot_pos.x() - robot_ene.x());
-  /*
-  const auto keeper_theta = robot_ene->second.theta();*/
+  //
+  const auto keeper_theta = std::atan2(robot_ene.y(), robot_ene.x());
   //ボールとロボットの間の距離
   const double dist = 350;
   //送りたいロボットを指定
@@ -142,21 +142,27 @@ model::command kick::execute() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
       //キーパーが右                                                                                  //ロボットとボールの位置を見ているので、相手のきーぱーの位置を取得、それとぼーるの角度を確認してif（switch）で制御
-      if(robot_ene.y() <= 0){                                                                      //参考：キーパーロボットの開脚で守れる範囲は、ロボットを中心に30cm、シュートの入る角度（rad）は左右に0.3ずつ
+      if(robot_ene.y() < 0){                                                                      //参考：キーパーロボットの開脚で守れる範囲は、ロボットを中心に30cm、シュートの入る角度（rad）は左右に0.3ずつ
         //左キック
         command.set_motion(std::make_shared<model::motion::left_kick>());
 
         //キーパーが極端に右
-        if(std::abs(std::atan2(robot_pos.y() - robot_ene.y(), robot_pos.x() - robot_ene.x())/* - keepaer_theta*/) < pi<double>() / 4.0){
-          command.set_motion(std::make_shared<model::motion::left_kick>());
+        if(pi<double>() / 7.2 < std::abs(std::atan2(robot_pos.y() - robot_ene.y(), robot_pos.x() - robot_ene.x()) - keeper_theta) < pi<double>() / 4.0){
+          command.set_position(robot_ene);
+          command.set_motion(std::make_shared<model::motion::left_outside_kick>());
         }
 
 
       //キーパーが左
-      }else if(robot_ene.y() >=0){
+      }else if(robot_ene.y() >0){
         //右キック
         command.set_motion(std::make_shared<model::motion::right_kick>());
 
+        //キーパーが極端に左
+        if(pi<double>() / -7.2 < std::abs(std::atan2(robot_pos.y() - robot_ene.y(), robot_pos.x() - robot_ene.x()) - keeper_theta) < pi<double>() / -4.0){
+          command.set_position(robot_ene);
+          command.set_motion(std::make_shared<model::motion::right_outside_kick>());
+        }
       }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
